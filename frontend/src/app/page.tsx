@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
 import { CategoryFilter } from "@/components/CategoryFilter";
@@ -10,6 +10,11 @@ import { WhatsAppBotBanner } from "@/components/WhatsAppBotBanner";
 import { Footer } from "@/components/Footer";
 import { INITIAL_COUPONS } from "@/data/mockCoupons";
 import { Coupon, CouponSubmission, CategoryType } from "@/types/coupon";
+import {
+  fetchCouponsFromApi,
+  createCouponApi,
+  voteCouponApi,
+} from "@/lib/api";
 import { PlusCircle, AlertCircle } from "lucide-react";
 
 export default function Home() {
@@ -19,6 +24,31 @@ export default function Home() {
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [sortBy, setSortBy] = useState<"popular" | "newest" | "discount">("popular");
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
+
+  // Sync with API
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadData() {
+      const result = await fetchCouponsFromApi({
+        category: selectedCategory,
+        q: searchQuery,
+        onlyVerified,
+        sortBy,
+      });
+      if (!isCancelled) {
+        setCoupons(result.coupons);
+        setIsBackendConnected(result.isFromBackend);
+      }
+    }
+
+    loadData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedCategory, searchQuery, onlyVerified, sortBy]);
 
   // Category counts
   const categoryCounts = useMemo(() => {
@@ -41,11 +71,10 @@ export default function Home() {
     return counts;
   }, [coupons]);
 
-  // Filtered & Sorted Coupons
+  // Filtered & Sorted Coupons (client-side safety / offline support)
   const filteredCoupons = useMemo(() => {
     return coupons
       .filter((c) => {
-        // Search filter
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchStore = c.storeName.toLowerCase().includes(q);
@@ -57,12 +86,10 @@ export default function Home() {
           }
         }
 
-        // Category filter
         if (selectedCategory !== "all" && c.storeCategory !== selectedCategory) {
           return false;
         }
 
-        // Verified filter
         if (onlyVerified && !c.isVerified) {
           return false;
         }
@@ -84,51 +111,60 @@ export default function Home() {
   }, [coupons, searchQuery, selectedCategory, onlyVerified, sortBy]);
 
   // Handle voting
-  const handleVote = (id: string, type: "up" | "down") => {
+  const handleVote = async (id: string, type: "up" | "down") => {
+    // Optimistic UI update
     setCoupons((prev) =>
       prev.map((item) => {
         if (item.id === id) {
+          const newUp = type === "up" ? item.upvotes + 1 : item.upvotes;
+          const newDown = type === "down" ? item.downvotes + 1 : item.downvotes;
+          const newRate = Math.round((newUp / (newUp + newDown)) * 100);
           return {
             ...item,
-            upvotes: type === "up" ? item.upvotes + 1 : item.upvotes,
-            downvotes: type === "down" ? item.downvotes + 1 : item.downvotes,
+            upvotes: newUp,
+            downvotes: newDown,
+            successRate: newRate,
           };
         }
         return item;
       })
     );
+
+    // Call backend API if active
+    await voteCouponApi(id, type);
   };
 
-  // Handle submission
-  const handleCouponSubmission = (data: CouponSubmission) => {
-    const newCoupon: Coupon = {
-      id: `coup-${Date.now()}`,
-      storeName: data.storeName,
-      storeCategory: data.storeCategory,
-      title: data.title,
-      description: data.description || "Community submitted verified deal.",
-      code: data.code,
-      isReferralLink: data.isReferralLink,
-      referralUrl: data.referralUrl,
-      discountType: "flat",
-      discountValue: data.discountValue,
-      minimumOrderValue: data.minimumOrderValue || "None",
-      expiresAt: data.expiresAt || "2026-12-31",
-      isVerified: true,
-      verifiedAt: "Just now",
-      successRate: 100,
-      upvotes: 1,
-      downvotes: 0,
-      uploaderName: data.uploaderName || "Community Member",
-      uploaderRewardUpi: data.uploaderUpi,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-
-    setCoupons([newCoupon, ...coupons]);
+  // Handle coupon submission
+  const handleCouponSubmission = async (data: CouponSubmission) => {
+    const createdCoupon = await createCouponApi(data);
+    setCoupons((prev) => [createdCoupon, ...prev]);
   };
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col font-sans text-gray-900 selection:bg-emerald-100 selection:text-emerald-900">
+      {/* Backend / Static Sync Status Indicator */}
+      <div className="bg-gray-900 text-gray-300 text-[11px] py-1 px-4 border-b border-gray-800">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isBackendConnected ? "bg-emerald-400 animate-pulse" : "bg-teal-400"
+              }`}
+            />
+            <span>
+              {isBackendConnected
+                ? "Live Connected: FastAPI Backend (:8000)"
+                : "Static Dataset: Verified Community Seed"}
+            </span>
+          </div>
+          <div className="hidden sm:flex items-center gap-3 text-gray-400">
+            <span>Next.js 16 + Tailwind</span>
+            <span>•</span>
+            <span>Zero-Cost MVP Architecture</span>
+          </div>
+        </div>
+      </div>
+
       {/* Navigation */}
       <Navbar
         onOpenSubmitModal={() => setIsSubmitModalOpen(true)}

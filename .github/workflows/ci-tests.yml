@@ -2,9 +2,15 @@ name: CI Tests
 
 on:
   push:
-    branches: [main, docs/idea-updates, setup/project-scaffold]
+    branches:
+      - main
+      - docs/**
+      - setup/**
+      - feat/**
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - setup/**
 
 jobs:
   backend-tests:
