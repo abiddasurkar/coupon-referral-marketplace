@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   Clock,
   MessageCircle,
-  Share2,
 } from "lucide-react";
 
 interface CouponCardProps {

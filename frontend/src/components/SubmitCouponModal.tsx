@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Coupon, CouponSubmission, CategoryType } from "@/types/coupon";
-import { X, Sparkles, CheckCircle2, IndianRupee, ShieldAlert } from "lucide-react";
+import { CouponSubmission, CategoryType } from "@/types/coupon";
+import { X, Sparkles, CheckCircle2, IndianRupee } from "lucide-react";
 
 interface SubmitCouponModalProps {
   isOpen: boolean;

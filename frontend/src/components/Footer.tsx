@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Tag, Heart, MessageCircle, GitFork } from "lucide-react";
+import { Tag, Heart, MessageCircle } from "lucide-react";
 
 export const Footer: React.FC = () => {
   return (

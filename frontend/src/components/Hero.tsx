@@ -59,6 +59,15 @@ export const Hero: React.FC<HeroProps> = ({
               </button>
             )}
           </div>
+          <div className="mt-2.5 flex items-center justify-center gap-2 text-xs text-gray-500">
+            <span>Have an unused code or referral link?</span>
+            <button
+              onClick={onOpenSubmitModal}
+              className="text-emerald-700 hover:text-emerald-800 font-bold underline cursor-pointer"
+            >
+              Share &amp; Earn UPI Rewards
+            </button>
+          </div>
         </div>
 
         {/* Value Props Row */}

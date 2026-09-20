@@ -10,7 +10,7 @@ import { WhatsAppBotBanner } from "@/components/WhatsAppBotBanner";
 import { Footer } from "@/components/Footer";
 import { INITIAL_COUPONS } from "@/data/mockCoupons";
 import { Coupon, CouponSubmission, CategoryType } from "@/types/coupon";
-import { Tag, Sparkles, PlusCircle, AlertCircle } from "lucide-react";
+import { PlusCircle, AlertCircle } from "lucide-react";
 
 export default function Home() {
   const [coupons, setCoupons] = useState<Coupon[]>(INITIAL_COUPONS);
